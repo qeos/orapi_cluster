@@ -25,11 +25,13 @@ dhclient wlan0
 /etc/resolv.conf
 nameserver 77.88.8.8 # yandex dns
 
-3. GIT cpmmands
+3. GIT commands
+
+https://htmlacademy.ru/blog/git/git-console
 
 git add .
 git commit -m "some text of changes"
-git push orign
+git push orign main
 
 4. uth for GITHub
 
