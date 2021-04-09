@@ -3,8 +3,13 @@ Cluster on orangePI zero
 
 INFORMATION
 
+INSTALLATION
 
+1. Install web server NGINX
 
+apt install nginx
+
+2.
 
 
 
