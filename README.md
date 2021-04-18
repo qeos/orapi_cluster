@@ -9,7 +9,11 @@ INSTALLATION
 
 apt install nginx
 
-2.
+2. Make symlink for forlder
+
+ln -s `pwd`/server/ /var/www/html/
+
+
 
 
 
@@ -29,6 +33,11 @@ dhclient wlan0
 
 /etc/resolv.conf
 nameserver 77.88.8.8 # yandex dns
+
+or
+
+echo "nameserver 77.88.8.8 # yandex dns" >> /etc/resolv.conf
+
 
 3. GIT commands
 
