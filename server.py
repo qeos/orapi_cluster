@@ -8,8 +8,8 @@ class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
 	def do_GET(self):
 		print("GET")
 		self.send_response(200)
-		self.send_handler('Content-type', 'text/html')
-		self.end_handlers()
+		self.send_header('Content-type', 'text/html')
+		self.end_headers()
 		self.wfile.write(b'Hello world')
 
 	def do_POST(self):
