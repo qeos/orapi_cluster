@@ -1,0 +1,73 @@
+#!/bin/sh
+# kFreeBSD do not accept scripts as interpreters, using #!/bin/sh and sourcing.
+#if [ true != "$INIT_D_SCRIPT_SOURCED" ] ; then
+#    set "$0" "$@"; INIT_D_SCRIPT_SOURCED=true . /lib/init/init-d-script
+#fi
+### BEGIN INIT INFO
+# Provides:          prometheus
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Monitoring system and time series database
+# Description:       Prometheus is a systems and services monitoring system. It
+#                    collects metrics from configured targets at given
+#                    intervals, evaluates rule expressions, displays the
+#                    results, and can trigger alerts if some condition is
+#                    observed to be true.
+### END INIT INFO
+
+# Author: Victor Shevchenko <qeos@qeos.ru>
+
+set -e
+set -u
+${DEBIAN_SCRIPT_DEBUG:+ set -v -x}
+
+
+DESC="monitoring, system and time series database"
+DAEMON=/usr/bin/prometheus
+NAME=prometheus
+USER=prometheus
+PIDFILE=/var/run/prometheus/prometheus.pid
+DAEMONLOGFILE=/var/log/prometheus/daemon.log
+LOGFILE=/var/log/prometheus/prometheus.log
+CONFIGFILE=/etc/prometheus/prometheus.yml
+
+HELPER=/usr/bin/daemon
+HELPER_ARGS="--name=$NAME --output=$LOGFILE --pidfile=$PIDFILE --user=$USER"
+
+STORAGEDIR=/var/lib/prometheus/data
+
+if [ -f /etc/default/prometheus ]; then
+  . /etc/default/prometheus
+fi
+
+ARGS="--config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/var/run/prometheus/data/ --log.level=debug"
+
+
+case "${1:-''}" in
+	'start')
+		echo "Starting daemon: $NAME"
+		#log_daemon_msg "do with $ARGS"
+		$HELPER $HELPER_ARGS -- $DAEMON $ARGS
+		
+		;;
+	'stop')
+		echo "Stopping daemon: $NAME"
+		$HELPER $HELPER_ARGS --running || exit 1
+		$HELPER $HELPER_ARGS --stop || exit 2
+		# wait for the process to really terminate
+		for n in 1 2 3 4 5; do
+			sleep 1
+			$HELPER $HELPER_ARGS --running || break
+		done
+		$HELPER $HELPER_ARGS --running || exit 0
+		exit 2
+		;;
+	*)
+		echo "Usage: $NAME {start,stop,restart,status}"
+		exit 3
+		;;
+esac
+
+
