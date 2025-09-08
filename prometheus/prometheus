@@ -21,8 +21,11 @@
 
 set -e
 set -u
-${DEBIAN_SCRIPT_DEBUG:+ set -v -x}
+set -x
+#${DEBIAN_SCRIPT_DEBUG:+ set -v -x}
 
+#. /lib/init/vars
+. /lib/lsb/init-functions
 
 DESC="monitoring, system and time series database"
 DAEMON=/usr/bin/prometheus
@@ -44,25 +47,86 @@ fi
 
 ARGS="--config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/var/run/prometheus/data/ --log.level=debug"
 
+# Start the daemon/service
+#
+# Returns:
+#   0 if daemon has been started
+#   1 if daemon was already running
+#   2 if daemon could not be started
+
+NODE_NAME=node_exporter
+NODE_PID=/var/run/prometheus/$NODE_NAME.pid
+NODE_LOG=/var/log/prometheus/$NODE_NAME.log
+NODE_DAEMON=/usr/bin/$NODE_NAME
+NODE_DAEMON_LOG=/var/log/prometheus/daemon_$NODE_NAME.log
+NODE_ARGS=""
+NODE_HELPER_ARGS="--name=$NODE_NAME --output=$NODE_DAEMON_LOG --pidfile=$NODE_PID --user=$USER"
+
+start_node()
+{
+#	start-stop-daemon --start --pidfile $NODEPID --exec $NODEDAEMON --test > $NODELOG \
+#		|| return 1
+	$HELPER $NODE_HELPER_ARGS -- \
+		$NODE_DAEMON $NODE_ARGS 2>$NODE_LOG \
+		|| return 2
+}
+
+stop_node()
+{
+	$HELPER $NODE_HELPER_ARGS --stop \
+		|| return 2
+}
+
+PROM_NAME=prometheus
+PROM_PID=/var/run/prometheus/$PROM_NAME.pid
+PROM_LOG=/var/log/prometheus/$PROM_NAME.log
+PROM_DAEMON=/usr/bin/$PROM_NAME
+PROM_DAEMON_LOG=/var/log/prometheus/daemon_$PROM_NAME.log
+PROM_ARGS="--config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/var/run/prometheus/data/ --log.level=debug"
+PROM_HELPER_ARGS="--name=$PROM_NAME --output=$PROM_DAEMON_LOG --pidfile=$PROM_PID --user=$USER"
+
+start_prometheus()
+{
+	$HELPER $PROM_HELPER_ARGS -- \
+		$PROM_DAEMON $PROM_ARGS 2>$PROM_LOG \
+		|| return 2
+}
+
+stop_prometheus()
+{
+	$HELPER $PROM_HELPER_ARGS --stop \
+		|| return 2
+}
+
 
 case "${1:-''}" in
 	'start')
-		echo "Starting daemon: $NAME"
-		#log_daemon_msg "do with $ARGS"
-		$HELPER $HELPER_ARGS -- $DAEMON $ARGS
-		
+		log_daemon_msg "Starting daemon: node_exporter"
+		start_node
+		case "$?" in
+			0|1)	log_end_msg 0 ;;
+			2)		log_end_msg 1 ;;
+		esac
+		log_daemon_msg "Starting daemon: prometheus"
+		start_prometheus
+		case "$?" in
+			0|1)	log_end_msg 0 ;;
+			2)		log_end_msg 1 ;;
+		esac
 		;;
 	'stop')
-		echo "Stopping daemon: $NAME"
-		$HELPER $HELPER_ARGS --running || exit 1
-		$HELPER $HELPER_ARGS --stop || exit 2
-		# wait for the process to really terminate
-		for n in 1 2 3 4 5; do
-			sleep 1
-			$HELPER $HELPER_ARGS --running || break
-		done
-		$HELPER $HELPER_ARGS --running || exit 0
-		exit 2
+		log_daemon_msg "Stopping daemon: node_exporter"
+		stop_node
+		case "$?" in
+			0|1)	log_end_msg 0 ;;
+			2)		log_end_msg 1 ;;
+		esac
+		log_daemon_msg "Stopping daemon: prometheus"
+		stop_prometheus
+		case "$?" in
+			0|1)	log_end_msg 0 ;;
+			2)		log_end_msg 1 ;;
+		esac
 		;;
 	*)
 		echo "Usage: $NAME {start,stop,restart,status}"
